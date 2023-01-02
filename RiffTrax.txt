@@ -1,0 +1,104 @@
+Instructions on muxing RiffTrax with a DVD-movie back onto a DVD
+Author: Nick Zwart
+Date: 09jun11
+
+
+Software:
+    Audacity - sound editor
+            http://audacity.sourceforge.net/download/
+
+    Mplayer - stream ripper (and Mencoder)
+            http://prdownloads.sourceforge.net/mplayerosx/ffmpegXbinaries20060307.zip
+            
+    ffmpegX - muxer (an ffmpeg package for OSX) (requires mplayer, mencoder, and mpeg2enc)
+            http://www.ffmpegx.com/download.html
+
+    DVDImager - issues the final mkisofs command for a DVD master image 
+            http://lonestar.utsa.edu/llee/applescript/dvdimager.html
+
+    mpeg2enc - part of ffmpegX
+            http://mjpeg.sourceforge.net/MacOS  (the file is mpeg2enc.intel)
+
+
+
+Steps:
+    1) Stream rip DVD: (insert pop-tart into toaster)
+       -open Terminal.app
+       -change directory 'cd' to the directory containing the mplayer and mencoder binaries.
+       -issue the mplayer command at the '>$' prompt
+        >$ mplayer dvd://1 -dumpstream -dumpfile <filename.stream>
+        -wait 5-10min
+
+    2) Dump audio:
+        -in Terminal.app again
+        >$ mplayer <filename.stream> -dumpaudio -dumpfile <filename.audio.stream>
+        -wait 5-10min
+
+    3) Convert audio from AC3 to MP3:
+        -start ffmpegX
+        -open <filename.audio.stream>
+        -convert to mp3 constant bitrate 256Kb/s (128Kb/s is pretty much fine, and is much faster to render in audacity).
+        -wait 5-10min
+    
+    4) Mux audio:
+        -start audacity
+        -open <filename.audio.stream> (NOTE: this file must be opened first for correct auto ducking order)
+        -wait 5min
+        -file->import <rifftrax.mp3>
+        (NOTE: dont edit the movie soundtrack in any way
+               it will cause sync issues, ie. no time shifting, cutting or trimming)
+        -wait 5min
+        -time sync rifftrax with sound track by shifting only the rifftrax
+        -'cut' the intro to rifftrax so that it doesn't extend past the movie soundtrack
+         (this is vital for audio sync)
+        -jump to Disembodio sync points, using rifftrax supplied text, highlight and 'silence'
+        -AutoDuck (set transition times to 0.13sec and set 'Duck amount' to -13.5dB)
+        -wait 10min
+        -export to mp3 <filename.audioPlusRifftrax.mp3>, constant bitrate
+        -wait 10min
+
+    5) Mux new audio and video:
+        -start ffmpegX
+        -open <filename.stream> (the original video dump)
+        -select summary tab, output is 'ffmpeg DVD'
+         (this creates a VIDEO_TS directory)
+        -select audio tab, additional audio, <filename.audioPlusRifftrax.mp3>
+        -select video tab, 'Autosize' should say 'DVD' or 'DVD 16:9' depending on input video.
+        -press Encode
+        -wait 20min
+
+    5a) Test VIDEO_TS directory:
+        -start VLC
+        -open the new VIDEO_TS directory
+        -check for audio-video sync and correct aspect ratio
+
+    6) Convert VIDEO_TS to a DVD mastered image:
+        -open DVD-Imager
+        -drag VIDEO_TS directory onto icon
+        -create image.
+        (NOTE: OSX puts a hidden file in each directory that is viewed by the 'Finder.app'.
+               The DVD image will not work if this hidden '.DS_Store' file exists in the
+               VIDEO_TS directory.  This can be checked in the Terminal.app by issuing an
+               'ls -a /pathToVIDEOTS/VIDEO_TS' command. )
+
+    7) Burn image to DVD:
+        -double click new dvd '.img' file
+        -open DiskUtiltiy.app
+        -select '.img' file from list and select 'burn'
+    
+___________________________________________________
+Muxing Matroska Files (MKV)
+    -Get the mkvtoolnix package available in CLI and GUI.
+
+    1) Extract audio from mkv file
+        -either use ffmpegX to dump an audio only file (this was the method last used)
+            -don't check video encode
+            -passthrough audio
+        -or use mkvextract to extract audio (not yet tested)
+
+    2) Perform RiffTrax muxing in Audacity as in Steps 3 & 4 above.
+        -make sure to export as AC3 audio
+
+    3) Mux new rifftrax audio into mkv file using mkvextract
+        $ mkvextract -o <outputfilename.mkv> <inputvideo.mkv> <inputrifftrax.ac3>
+
